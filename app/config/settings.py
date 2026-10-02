@@ -14,6 +14,8 @@ class ApiSettings(BaseSettings):
 
     APIFY_CLIENT_API: str
     Actor_id: str
+    model_agent: str
+    GROQ_API_KEY: str
 
 
 seetings_manager = ApiSettings()

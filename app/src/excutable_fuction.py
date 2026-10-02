@@ -7,7 +7,6 @@ from app.utils import WebsiteSrapperErrorHandeler
 from loguru import logger
 from pcpartpicker import API
 from app.config import seetings_manager
-from .excutable_fuction import ExcicutionFcutions
 from langchain.tools import tool
 
 
@@ -68,58 +67,53 @@ class ApifyPcPartPicker(ExcicutionFcutions):
 # pcpartpicker
 #################################
 
-class PcPartsPicker(ExcicutionFcutions):
+def __tool_excute(self, inputs: list[str]):
     """
-    This class provides an interface to interact with the PCPartPicker website for searching parts.
-    It uses web scraping techniques to retrieve data from the website.
+    Searches for parts on the PCPartPicker website using the provided list of part names.
+
+    Args:
+        parts (list[str]): A list of part names to search for.
+    Returns:
+        A list of search results from the PCPartPicker website
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    api = API(region="us")
+    results = []
+
+    for part in inputs:
+        logger.info(f"Searching for part: {part}")
+        try:
+            # Inside this thread, api.retrieve can now safely hook into the loop we just set up
+            cpu_data = api.retrieve(part, force_refresh=True)
+            results.append(cpu_data.to_json())
+        except Exception as e:
+            logger.error(f"Error retrieving part '{part}': {e}")
+            continue
+
+    return results
+
+
+@tool
+async def tool_excute(self, inputs: list[str]):
+    """
+    Searches for parts on the PCPartPicker website using the provided list of pc  part names.
+    Args:
+        parts (list[str]): A list of part names to search for.
+    Returns:
+        A list of search results from the PCPartPicker website.
+
     """
 
-    def __tool_excute(self, inputs: list[str]):
-        """
-        Searches for parts on the PCPartPicker website using the provided list of part names.
+    try:
+        result = await asyncio.to_thread(self.__tool_excute, inputs)
+        return result
 
-        Args:
-            parts (list[str]): A list of part names to search for.
-        Returns:
-            A list of search results from the PCPartPicker website
-        """
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        api = API(region="us")
-        results = []
-
-        for part in inputs:
-            logger.info(f"Searching for part: {part}")
-            try:
-                # Inside this thread, api.retrieve can now safely hook into the loop we just set up
-                cpu_data = api.retrieve(part, force_refresh=True)
-                results.append(cpu_data.to_json())
-            except Exception as e:
-                logger.error(f"Error retrieving part '{part}': {e}")
-                continue
-
-        return results
-
-    @tool
-    async def tool_excute(self, inputs: list[str]):
-        """
-        Searches for parts on the PCPartPicker website using the provided list of pc part names.
-        Args:
-            parts (list[str]): A list of part names to search for.
-        Returns:
-            A list of search results from the PCPartPicker website.
-
-        """
-
-        try:
-            result = await asyncio.to_thread(self.__tool_excute, inputs)
-            return result
-
-        except Exception as error:
-            logger.error(
-                "there is an error to parse pc parts please try again later ")
-            raise WebsiteSrapperErrorHandeler(messages=error)
+    except Exception as error:
+        logger.error(
+            "there is an error to parse pc parts please try again later ")
+        raise WebsiteSrapperErrorHandeler(messages=error)

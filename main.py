@@ -1,9 +1,5 @@
-from app.service import scrape_pc_parts
-from app.client import SecraperService
-from app.src import PcPartsPicker
 import asyncio
-from loguru import logger
-
+from app.service import run_agent
 
 """
 source_client = SecraperService(client=PcPartsPicker())
@@ -26,6 +22,14 @@ async def run():
     result = await main()
     print(result)
 
-if __name__ == "__main__":
-    asyncio.run(run())
 """
+
+
+async def main(inputs):
+    async for chunk in run_agent(user_inputs=inputs):
+        return chunk
+
+
+if __name__ == "__main__":
+    asyncio.run(
+        main(inputs={"messages": [("user", "show me some best pc bulids")]}))
