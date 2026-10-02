@@ -1,6 +1,6 @@
 from loguru import logger
-from utils import WebsiteSrapperErrorHandeler
-from client import SecraperService
+from app.utils import WebsiteSrapperErrorHandeler
+from app.client import SecraperService
 from pyresilience import resilient, TimeoutConfig, RetryConfig
 from fastapi.exceptions import HTTPException
 
@@ -13,7 +13,7 @@ from fastapi.exceptions import HTTPException
         max_attempts=3
     )
 )
-async def scrape_pc_parts(client: SecraperService, parts: list[str]):
+async def scrape_pc_parts(client: SecraperService, pc_parts: list[str]):
     """
         Scrapes PC parts using the provided client.
 
@@ -23,9 +23,9 @@ async def scrape_pc_parts(client: SecraperService, parts: list[str]):
             A list of search results from the respective platform.
       """
     try:
-        async for result in client.scrape_pc_parts(parts):
-            logger.info(f"this{parts}srapped sucessfully")
-            yield result
+        result = await client.scrape_pc_parts(parts=pc_parts)
+        logger.info(f"this{pc_parts}srapped sucessfully")
+        return result
     except WebsiteSrapperErrorHandeler as error:
-        logger.error(f"can't parse the {parts}")
+        logger.error(f"can't parse the {pc_parts}")
         raise HTTPException(detail=str(error))

@@ -1,7 +1,6 @@
 from app.src import SracperClient
-from pyresilience import resilient, TimeoutConfig, RetryConfig
 from loguru import logger
-from utils import WebsiteSrapperErrorHandeler
+from app.utils import WebsiteSrapperErrorHandeler
 from fastapi.exceptions import HTTPException
 
 
@@ -30,9 +29,11 @@ class SecraperService:
             A list of search results from the respective platform.
         """
         try:
-            async for result in self.client.search_for_parts(parts):
-                logger.info(f"this{parts}srapped sucessfully")
-                yield result
+            resault = await self.client.search_for_parts(
+                parts=parts
+            )
+            logger.info(f"this{parts}srapped sucessfully")
+            return resault
         except WebsiteSrapperErrorHandeler as error:
             logger.error(f"can't parse the {parts}")
-            raise HTTPException(detail=str(error))
+            raise HTTPException(status_code=403, detail=str(error))

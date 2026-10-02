@@ -13,6 +13,7 @@ class ApiSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8")
 
     APIFY_CLIENT_API: str
+    Actor_id: str
 
 
 seetings_manager = ApiSettings()
