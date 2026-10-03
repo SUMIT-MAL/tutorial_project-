@@ -129,27 +129,66 @@ async def tool_excute(self, inputs: list[str]):
 
 
 @tool(name_or_callable="amezone_store_search")
-async def tool_excute_internet_search(product_name):
+def tool_excute_url_search(product_name):
     """
     Searches the open web via DuckDuckGo specifically for Amazon product listings.
     Returns page titles, descriptions, and direct product URLs and also the images.
     Use this to look up pricing and store links for PC components completely for free.
     valuse to search must:
-    - images of specific prodcts.
-    - url of the product from the amezone.
-    - and descrition of the produts.
+    - url link of the product from the amezone.
     """
     # Use the site: modifier to force the search engine to look on Amazon
     optimized_query = f"{product_name} site:amazon.com"
 
     try:
         # Execute the zero-config search query
-        loop = asyncio.get_event_loop()
-        search_results = await loop.run_in_executor(
-            None,
-            ddg_search.run,
-            optimized_query
+        search_result = ddg_search.run(
+            tool_input=optimized_query
         )
-        return search_results
+        return search_result
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"
+
+
+@tool(name_or_callable="image_search")
+def tool_excute_image_search(product_name):
+    """
+    Searches the open web via DuckDuckGo specifically for Amazon product listings.
+    Returns page titles, descriptions, and direct product URLs and also the images.
+    Use this to look up pricing and store links for PC components completely for free.
+    valuse to search must:
+    - images of specific prodcts.
+    - url link of the product from the amezone.
+    - and descrition of the produts.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+
+    try:
+        # Execute the zero-config search query
+        search_result = ddg_search.run(
+            tool_input=product_name
+        )
+        return search_result
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"
+
+
+@tool(name_or_callable="description_store_search")
+def tool_excute_description_search(product_name):
+    """
+    Searches the open web via DuckDuckGo specifically for Amazon product listings.
+    Returns page titles, descriptions, and direct product URLs and also the images.
+    Use this to look up pricing and store links for PC components completely for free.
+    valuse to search must:
+    - and descrition of the produts.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+
+    try:
+        # Execute the zero-config search query
+        search_result = ddg_search.run(
+            tool_input=product_name
+        )
+        return search_result
     except Exception as e:
         return f"Failed to fetch search listings: {str(e)}"
