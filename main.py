@@ -13,12 +13,14 @@ app = FastAPI(title="pc_bulider main endpoint", version="0.0.1")
 
 
 app.include_router(
-    home.router
+    home.router,
+    prefix="/api"
 )
 
 
 app.include_router(
     router=ai_respones.router,
+    prefix="/api"
 )
 
 """

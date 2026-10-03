@@ -176,9 +176,8 @@ def tool_excute_image_search(product_name):
 @tool(name_or_callable="description_store_search")
 def tool_excute_description_search(product_name):
     """
-    Searches the open web via DuckDuckGo specifically for Amazon product listings.
-    Returns page titles, descriptions, and direct product URLs and also the images.
-    Use this to look up pricing and store links for PC components completely for free.
+    Searches the open web via DuckDuckGo specifically for the products descriptions.
+    Returns page descriptions.
     valuse to search must:
     - and descrition of the produts.
     """

@@ -23,4 +23,7 @@ async def run_agent(user_inputs: str):
             logger.info("agent is running")
             yield chunks
     except AiErrorHandeler as error:
-        raise RuntimeError(str(error))
+        logger.info("agent is not running", str(error))
+        yield {
+            "error": "AI service temporarily unavailable"
+        }
