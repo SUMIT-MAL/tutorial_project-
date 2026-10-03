@@ -1,3 +1,4 @@
+from langchain_core.tools import tool
 from abc import ABC, abstractmethod
 from typing import List
 from app.config import seetings_manager
@@ -5,9 +6,14 @@ import asyncio
 from apify_client import ApifyClientAsync
 from app.utils import WebsiteSrapperErrorHandeler
 from loguru import logger
-from pcpartpicker import API
+# from pcpartpicker import API
 from app.config import seetings_manager
 from langchain.tools import tool
+from langchain_community.tools import DuckDuckGoSearchRun
+import asyncio
+
+
+ddg_search = DuckDuckGoSearchRun()
 
 
 class ExcicutionFcutions(ABC):
@@ -67,15 +73,16 @@ class ApifyPcPartPicker(ExcicutionFcutions):
 # pcpartpicker
 #################################
 
+"""
 def __tool_excute(self, inputs: list[str]):
-    """
-    Searches for parts on the PCPartPicker website using the provided list of part names.
+    
+  Searches for parts on the PCPartPicker website using the provided list of part names.
 
-    Args:
-        parts (list[str]): A list of part names to search for.
+   Args:
+        parts(list[str]): A list of part names to search for .
     Returns:
         A list of search results from the PCPartPicker website
-    """
+    
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
@@ -97,8 +104,10 @@ def __tool_excute(self, inputs: list[str]):
 
     return results
 
+"""
 
-@tool
+
+@tool(name_or_callable="pc_parts_finder")
 async def tool_excute(self, inputs: list[str]):
     """
     Searches for parts on the PCPartPicker website using the provided list of pc  part names.
@@ -117,3 +126,32 @@ async def tool_excute(self, inputs: list[str]):
         logger.error(
             "there is an error to parse pc parts please try again later ")
         raise WebsiteSrapperErrorHandeler(messages=error)
+
+
+@tool(name_or_callable="amezone store search")
+async def tool_excute_internet_search(product_name, product_image, product_description):
+    """
+    Searches the open web via DuckDuckGo specifically for Amazon product listings.
+    Returns page titles, descriptions, and direct product URLs and also the images.
+    Use this to look up pricing and store links for PC components completely for free.
+    valuse to search must:
+    - images of specific prodcts.
+    - url of the product from the amezone.
+    - and descrition of the produts.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+    optimized_query = f"{product_name} site:amazon.com"
+
+    try:
+        # Execute the zero-config search query
+        loop = asyncio.get_event_loop()
+        search_results = await loop.run_in_executor(
+            None,
+            ddg_search.run,
+            optimized_query,
+            product_image,
+            product_description
+        )
+        return search_results
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"

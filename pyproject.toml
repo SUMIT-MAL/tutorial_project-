@@ -3,15 +3,16 @@ name = "tutorial-project"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "apify-client>=3.2.1",
-    "fastapi>=0.142.2",
+    "ddgs>=9.16.0",
+    "fastapi[standard]>=0.142.2",
     "langchain>=1.4.3",
+    "langchain-community",
     "langchain-groq>=1.1.3",
     "langgraph>=1.2.12",
     "loguru>=0.7.3",
-    "pcpartpicker>=2.2.2",
     "pydantic-settings>=2.15.0",
     "pyresilience>=0.4.0",
 ]

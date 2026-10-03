@@ -1,10 +1,20 @@
+from pyresilience import resilient, TimeoutConfig, RetryConfig
 from app.src import AiAgentManger
 from loguru import logger
 from app.utils import AiErrorHandeler
 from fastapi.exceptions import HTTPException
+
 service = AiAgentManger()
 
 
+@resilient(
+    timeout=TimeoutConfig(
+        seconds=20
+    ),
+    retry=RetryConfig(
+        max_attempts=3
+    )
+)
 async def run_agent(user_inputs: str):
     try:
         async for chunks in service.run_agent(
