@@ -25,7 +25,9 @@ async def scrape_pc_parts(client: SecraperService, pc_parts: list[str]):
     try:
         result = await client.scrape_pc_parts(parts=pc_parts)
         logger.info(f"this{pc_parts}srapped sucessfully")
-        return result
+        yield result
     except WebsiteSrapperErrorHandeler as error:
-        logger.error(f"can't parse the {pc_parts}")
-        raise HTTPException(detail=str(error))
+        logger.error(f"can't parse the {pc_parts},{str(error)}")
+        yield {
+            "error": "ai's tool is not working corrently please try again later"
+        }

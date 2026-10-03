@@ -1,3 +1,4 @@
+from langchain_core.tools import tool
 from abc import ABC, abstractmethod
 from typing import List
 from app.config import seetings_manager
@@ -5,10 +6,14 @@ import asyncio
 from apify_client import ApifyClientAsync
 from app.utils import WebsiteSrapperErrorHandeler
 from loguru import logger
-from pcpartpicker import API
+# from pcpartpicker import API
 from app.config import seetings_manager
-from .excutable_fuction import ExcicutionFcutions
 from langchain.tools import tool
+from langchain_community.tools import DuckDuckGoSearchRun
+import asyncio
+
+
+ddg_search = DuckDuckGoSearchRun()
 
 
 class ExcicutionFcutions(ABC):
@@ -68,58 +73,121 @@ class ApifyPcPartPicker(ExcicutionFcutions):
 # pcpartpicker
 #################################
 
-class PcPartsPicker(ExcicutionFcutions):
-    """
-    This class provides an interface to interact with the PCPartPicker website for searching parts.
-    It uses web scraping techniques to retrieve data from the website.
-    """
+"""
+def __tool_excute(self, inputs: list[str]):
+    
+  Searches for parts on the PCPartPicker website using the provided list of part names.
 
-    def __tool_excute(self, inputs: list[str]):
-        """
-        Searches for parts on the PCPartPicker website using the provided list of part names.
+   Args:
+        parts(list[str]): A list of part names to search for .
+    Returns:
+        A list of search results from the PCPartPicker website
+    
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        Args:
-            parts (list[str]): A list of part names to search for.
-        Returns:
-            A list of search results from the PCPartPicker website
-        """
+    api = API(region="us")
+    results = []
+
+    for part in inputs:
+        logger.info(f"Searching for part: {part}")
         try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Inside this thread, api.retrieve can now safely hook into the loop we just set up
+            cpu_data = api.retrieve(part, force_refresh=True)
+            results.append(cpu_data.to_json())
+        except Exception as e:
+            logger.error(f"Error retrieving part '{part}': {e}")
+            continue
 
-        api = API(region="us")
-        results = []
+    return results
 
-        for part in inputs:
-            logger.info(f"Searching for part: {part}")
-            try:
-                # Inside this thread, api.retrieve can now safely hook into the loop we just set up
-                cpu_data = api.retrieve(part, force_refresh=True)
-                results.append(cpu_data.to_json())
-            except Exception as e:
-                logger.error(f"Error retrieving part '{part}': {e}")
-                continue
+"""
 
-        return results
 
-    @tool
-    async def tool_excute(self, inputs: list[str]):
-        """
-        Searches for parts on the PCPartPicker website using the provided list of pc part names.
-        Args:
-            parts (list[str]): A list of part names to search for.
-        Returns:
-            A list of search results from the PCPartPicker website.
+@tool(name_or_callable="pc_parts_finder")
+async def tool_excute(self, inputs: list[str]):
+    """
+    Searches for parts on the PCPartPicker website using the provided list of pc  part names.
+    Args:
+        parts (list[str]): A list of part names to search for.
+    Returns:
+        A list of search results from the PCPartPicker website.
 
-        """
+    """
 
-        try:
-            result = await asyncio.to_thread(self.__tool_excute, inputs)
-            return result
+    try:
+        result = await asyncio.to_thread(self.__tool_excute, inputs)
+        return result
 
-        except Exception as error:
-            logger.error(
-                "there is an error to parse pc parts please try again later ")
-            raise WebsiteSrapperErrorHandeler(messages=error)
+    except Exception as error:
+        logger.error(
+            "there is an error to parse pc parts please try again later ")
+        raise WebsiteSrapperErrorHandeler(messages=error)
+
+
+@tool(name_or_callable="amezone_store_search")
+def tool_excute_url_search(product_name):
+    """
+    Searches the open web via DuckDuckGo specifically for Amazon product listings.
+    Returns page titles, descriptions, and direct product URLs and also the images.
+    Use this to look up pricing and store links for PC components completely for free.
+    valuse to search must:
+    - url link of the product from the amezone.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+    optimized_query = f"{product_name} site:amazon.com"
+
+    try:
+        # Execute the zero-config search query
+        search_result = ddg_search.run(
+            tool_input=optimized_query
+        )
+        return search_result
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"
+
+
+@tool(name_or_callable="image_search")
+def tool_excute_image_search(product_name):
+    """
+    Searches the open web via DuckDuckGo specifically for Amazon product listings.
+    Returns page titles, descriptions, and direct product URLs and also the images.
+    Use this to look up pricing and store links for PC components completely for free.
+    valuse to search must:
+    - images of specific prodcts.
+    - url link of the product from the amezone.
+    - and descrition of the produts.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+
+    try:
+        # Execute the zero-config search query
+        search_result = ddg_search.run(
+            tool_input=product_name
+        )
+        return search_result
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"
+
+
+@tool(name_or_callable="description_store_search")
+def tool_excute_description_search(product_name):
+    """
+    Searches the open web via DuckDuckGo specifically for the products descriptions.
+    Returns page descriptions.
+    valuse to search must:
+    - and descrition of the produts.
+    """
+    # Use the site: modifier to force the search engine to look on Amazon
+
+    try:
+        # Execute the zero-config search query
+        search_result = ddg_search.run(
+            tool_input=product_name
+        )
+        return search_result
+    except Exception as e:
+        return f"Failed to fetch search listings: {str(e)}"
