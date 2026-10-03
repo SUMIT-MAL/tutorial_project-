@@ -1,9 +1,11 @@
 from langchain.agents import create_agent
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.checkpoint.memory import InMemorySaver
-from excutable_fuction import PcPartsPicker as ppp
+from langchain_groq.chat_models import ChatGroq
+from app.src.excutable_fuction import tool_excute
 from app.utils import AiErrorHandeler
 from loguru import logger
+
+from app.config import seetings_manager
 
 
 class AiAgentManger:
@@ -14,10 +16,14 @@ class AiAgentManger:
         """
 
         self.logger = logger
+        self.llm = ChatGroq(
+            model=seetings_manager.model_agent,
+            temperature=0.0,  # Set this to 0 for strict, deterministic tool execution
+            api_key=seetings_manager.GROQ_API_KEY
+        )
         self.agent_object: CompiledStateGraph = create_agent(
-            model=None,
-            tools=[ppp.tool_excute()],
-            memory=InMemorySaver(),
+            model=self.llm,
+            tools=[tool_excute],
             debug=True
         )
         self.logger.warning(
@@ -33,8 +39,7 @@ class AiAgentManger:
                 input=user_input
             ):
                 self.logger.info("checkig if client giving a string value")
-                if isinstance(chenkes, str) == True:
-                    yield chenkes
+                yield chenkes
         except Exception as error:
             self.logger.error(f"Error in run_agent: {error}")
-            raise AiErrorHandeler(str(errors=error))
+            raise AiErrorHandeler(error)

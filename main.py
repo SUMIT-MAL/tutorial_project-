@@ -1,31 +1,15 @@
-from app.service import scrape_pc_parts
-from app.client import SecraperService
-from app.src import PcPartsPicker
-import asyncio
-from loguru import logger
+from app.service import run_agent
+from fastapi import FastAPI
+from app.api import home, ai_respones
+
+app = FastAPI(title="pc_bulider main endpoint", version="0.0.1")
 
 
-"""
-source_client = SecraperService(client=PcPartsPicker())
+app.include_router(
+    home.router
+)
 
 
-async def main():
-    result = await scrape_pc_parts(
-        client=source_client,
-        pc_parts=[
-            'cpu',
-            'mouse',
-            'motherboard',
-            'video-card',
-        ]
-    )
-    return result
-
-
-async def run():
-    result = await main()
-    print(result)
-
-if __name__ == "__main__":
-    asyncio.run(run())
-"""
+app.include_router(
+    ai_respones.router
+)

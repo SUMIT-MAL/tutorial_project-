@@ -1,4 +1,4 @@
-from app.src import SracperClient
+from app.src import ExcicutionFcutions
 from loguru import logger
 from app.utils import WebsiteSrapperErrorHandeler
 from fastapi.exceptions import HTTPException
@@ -10,7 +10,7 @@ class SecraperService:
     It utilizes the resilient decorator to handle timeouts and retries for the scraping operations.
     """
 
-    def __init__(self, client: SracperClient):
+    def __init__(self, client: ExcicutionFcutions):
         """
         Initializes the SecraperService with a specific scraper client.
 
@@ -29,7 +29,7 @@ class SecraperService:
             A list of search results from the respective platform.
         """
         try:
-            resault = await self.client.search_for_parts(
+            resault = await self.client.tool_excute(
                 parts=parts
             )
             logger.info(f"this{parts}srapped sucessfully")
