@@ -128,8 +128,8 @@ async def tool_excute(self, inputs: list[str]):
         raise WebsiteSrapperErrorHandeler(messages=error)
 
 
-@tool(name_or_callable="amezone store search")
-async def tool_excute_internet_search(product_name, product_image, product_description):
+@tool(name_or_callable="amezone_store_search")
+async def tool_excute_internet_search(product_name):
     """
     Searches the open web via DuckDuckGo specifically for Amazon product listings.
     Returns page titles, descriptions, and direct product URLs and also the images.
@@ -148,9 +148,7 @@ async def tool_excute_internet_search(product_name, product_image, product_descr
         search_results = await loop.run_in_executor(
             None,
             ddg_search.run,
-            optimized_query,
-            product_image,
-            product_description
+            optimized_query
         )
         return search_results
     except Exception as e:

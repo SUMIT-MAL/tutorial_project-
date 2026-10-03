@@ -3,7 +3,6 @@ from langgraph.graph.state import CompiledStateGraph
 from langchain_groq.chat_models import ChatGroq
 from app.src.excutable_fuction import tool_excute_internet_search
 from app.utils import AiErrorHandeler
-from langchain_community.tools import DuckDuckGoSearchRun
 from loguru import logger
 from langgraph.prebuilt import ToolNode
 from app.config import seetings_manager
@@ -21,9 +20,9 @@ class AiAgentManger:
             model=seetings_manager.model_agent,
             temperature=0.0,  # Set this to 0 for strict, deterministic tool execution
             api_key=seetings_manager.GROQ_API_KEY,
-            max_tokens=500
+            max_tokens=2048
         )
-        agent_tools = [DuckDuckGoSearchRun()]
+        agent_tools = [tool_excute_internet_search]
 
         # 2. Instantiate ToolNode with fallback exception mapping enabled
         tool_node = ToolNode(
@@ -40,7 +39,7 @@ class AiAgentManger:
                 - amazon shopping link
                 - description
                 - and more information
-
+                and end it. 
                 CRITICAL RULE: When you need to use a tool, rely entirely on the native tool-calling parameter engine framework.
                 NEVER output raw XML string markup tags like '<tool_call>' or '<function>' in your text thoughts. Only provide clean text responses or valid function executions.
                 """

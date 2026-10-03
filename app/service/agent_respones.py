@@ -23,4 +23,4 @@ async def run_agent(user_inputs: str):
             logger.info("agent is running")
             yield chunks
     except AiErrorHandeler as error:
-        raise HTTPException(status_code=403, detail=error)
+        raise RuntimeError(str(error))

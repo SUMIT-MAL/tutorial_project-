@@ -28,4 +28,4 @@ async def scrape_pc_parts(client: SecraperService, pc_parts: list[str]):
         return result
     except WebsiteSrapperErrorHandeler as error:
         logger.error(f"can't parse the {pc_parts}")
-        raise HTTPException(detail=str(error))
+        raise RuntimeError(str(error))
