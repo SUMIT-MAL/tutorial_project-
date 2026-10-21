@@ -12,8 +12,17 @@ class ApiSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8")
 
-    APIFY_CLIENT_API: str
-    Actor_id: str
+    MODEL_NAME: str
+
+    TRAVILY_API: str
+
+    LANGSMITH_TRACING: str
+    LANGSMITH_ENDPOINT: str
+    LANGSMITH_API_KEY: str
+    LANGSMITH_PROJECT: str
+
+    GROQ_API_KEY: str
+    SERPAPI_API: str
 
 
 seetings_manager = ApiSettings()
