@@ -1,119 +1,125 @@
 import serpapi
 from loguru import logger
-from app.utils import ToolsHubErrorHandeler
 from app.config.settings import seetings_manager
+from langchain.tools import tool
+import asyncio
 
 
-def image_search(query):
-    """
-    This method performs an image search using the SerpApi client.
-    :param query: The search query for the image search.
-    """
+def _client():
+    if not seetings_manager.SERPAPI_API:
+        logger.warning("agent tools are not available")
+        return None
+    return serpapi.Client(api_key=seetings_manager.SERPAPI_API, timeout=60)
+
+
+async def image_search(query: str):
+    """Find a product image for a PC part. Returns image URL and title."""
     try:
-        if seetings_manager.SERPAPI_API:
-            serpapi_client = serpapi.Client(
-                api_key=seetings_manager.SERPAPI_API,
-                timeout=60
-            )
-        else:
-            logger.warning("agent tools are not avalabile")
-            return seetings_manager.SERPAPI_API
-        results = serpapi_client.search({
+        client = _client()
+        if client is None:
+            return "error: search tool not configured"
+        results = client.search({
             "engine": "google_images",
-            "q": f"{query}",
-            "async": "true",
-            "tbm": "isch"
+            "q": query,
+            "gl": "in",
         })
-        logger.info("image search excuted succesfully")
-        image_results = results.get("images_results", [])
-        output = [
-            {
-                "title": item.get("title", "")[:150],
-                "thumbnail": item.get("thumbnail", ""),
-                "source": item.get("source", ""),
-            }
-            for item in image_results[:5]
-        ]
-        logger.info("Image search returned {} results", len(output))
-        return output
-
+        items = results.get("images_results") or []
+        items = [i for i in items if isinstance(i, dict)][:1]
+        if not items:
+            return "No image found, skip this part's image."
+        i = items[0]
+        return [{
+            "title": (i.get("title") or "")[:150],
+            "image": i.get("original") or i.get("thumbnail", ""),
+            "source": i.get("source", ""),
+        }]
     except Exception as error:
         logger.error(f"Error in image search: {error}")
-        return ToolsHubErrorHandeler(messages="there is an error in image search api call")
+        return "error: image search failed, skip this part's image."
 
 
-def description_search(query):
-    """
-    This method performs a description search using the SerpApi client.
-    :param query: The search query for the description search.
-    """
+async def description_search(query: str):
+    """Get a short description / specs snippet for a PC part."""
     try:
-        if seetings_manager.SERPAPI_API:
-            serpapi_client = serpapi.Client(
-                api_key=seetings_manager.SERPAPI_API,
-                timeout=60
-            )
-        else:
-            logger.warning("agent tools are not avalabile")
-            return seetings_manager.SERPAPI_API
-        results = serpapi_client.search({
+        client = _client()
+        if client is None:
+            return "error: search tool not configured"
+        results = client.search({
             "engine": "google",
-            "q": f"{query}",
-            "async": "true"
+            "q": query,
+            "gl": "in",
+            "hl": "en",
         })
-        logger.info("description search excuted sauccesfully")
-        description_results = results.get("organic_results", [])
-        output = [
-            {
-                "title": item.get("title", "")[:150],
-                "thumbnail": item.get("thumbnail", ""),
-                "source": item.get("source", ""),
-            }
-            for item in description_results[:5]
-        ]
-
-        logger.info("description search returned {} results", len(output))
-        return output
-
+        return results
     except Exception as error:
         logger.error(f"Error in description search: {error}")
-        return ToolsHubErrorHandeler(messages="there is an error in description search api call")
+        return "error: description search failed."
 
 
-def shoping_serach_link(query):
-    """
-    This method performs a shoping link search using the SerpApi client.
-    :param query: The search query for the shoping link search.    
-    """
+async def shoping_serach_link(query: str):
+    """Get price (INR), shopping link and image for a PC part."""
     try:
-        if seetings_manager.SERPAPI_API:
-            serpapi_client = serpapi.Client(
-                api_key=seetings_manager.SERPAPI_API,
-                timeout=60
-            )
-        else:
-            logger.warning("agent tools are not avalabile")
-            return seetings_manager.SERPAPI_API
-
-        results = serpapi_client.search({
-            "engine": "amazon_product",
-            "async": "true",
-            "k": f"{query}",
+        client = _client()
+        if client is None:
+            return "error: search tool not configured"
+        results = client.search({
+            "engine": "google_shopping",
+            "q": query,
+            "gl": "in",
+            "hl": "en",
         })
-        logger.info("shoping link search search excuted sauccesfully")
-        shoping_serach_link = results.get("organic_results", [])
-        output = [
-            {
-                "title": item.get("title", "")[:150],
-                "thumbnail": item.get("thumbnail", ""),
-                "source": item.get("source", ""),
-            }
-            for item in shoping_serach_link[:5]
-        ]
-
-        logger.info("Image search returned {} results", len(output))
-        return output
-
+        return results
     except Exception as error:
-        logger.error(f"Error in description search: {error}")
-        return ToolsHubErrorHandeler(messages="there is an error in description search api call")
+        logger.error(f"Error in shopping search: {error}")
+        return "error: shopping search failed."
+
+
+@tool
+async def image_search_thread(query):
+    """
+    This function is a wrapper for the image_search function that runs it in a separate thread.
+    It uses asyncio.to_thread to run the image_search function in a separate thread and returns the result.
+    Args:
+        query (str): The query string to search for.
+    Returns:
+        The result of the image_search function.
+    """
+    image_result = await asyncio.to_thread(
+        image_search,
+        query
+    )
+    return image_result
+
+
+@tool
+async def shoping_link_search_thread(query):
+    """
+    This function is a wrapper for the shoping_serach_link function that runs it in a separate thread.
+    It uses asyncio.to_thread to run the shoping_serach_link function in a separate thread and returns the result.
+    Args:
+        query (str): The query string to search for.
+    Returns:
+        The result of the shoping_serach_link function.
+    """
+    shoping_result = await asyncio.to_thread(
+        shoping_serach_link,
+        query
+    )
+    return shoping_result
+
+
+@tool
+async def description_search_thread(query):
+    """
+    This function is a wrapper for the description_search function that runs it in a separate thread.
+    It uses asyncio.to_thread to run the description_search function in a separate thread and returns the result.
+    Args:
+        query (str): The query string to search for.
+    Returns:
+        The result of the description_search function.
+    """
+    description_result = await asyncio.to_thread(
+        description_search,
+        query
+    )
+    return description_result
