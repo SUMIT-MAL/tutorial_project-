@@ -3,7 +3,8 @@ from app.client.agent_base_runner import AgentClient
 from app.src.deepagent_ai import DeepAgentClient, McpAgentClient
 from dotenv import load_dotenv
 from app.config.settings import seetings_manager
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+
 app = FastAPI()
 load_dotenv()
 
@@ -39,10 +40,15 @@ async def agent_respones(query):
     It uses the AgentClient to run the agent and yield parsed chunks of the response.
     """
     try:
-        async for parsed_chunk in mcp_agent_service.async_mcp_agent(query):
-            yield parsed_chunk
+        async def agent_run():
+            async for parsed_chunk in mcp_agent_service.async_mcp_agent(query=query):
+                yield str(parsed_chunk)
+        return StreamingResponse(
+            agent_run(),
+            media_type="text/plain"
+        )
     except Exception as error:
-        yield JSONResponse(
+        return JSONResponse(
             status_code=500,
             content={"error": f"Error in running MCP agent: {error}"}
         )

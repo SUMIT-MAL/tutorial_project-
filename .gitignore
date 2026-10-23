@@ -1,4 +1,5 @@
 .env
+shopping-mcp/
 pyproject.toml
 __init__.py
 __pycache__

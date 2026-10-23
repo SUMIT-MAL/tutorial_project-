@@ -9,6 +9,7 @@ from typing import AsyncIterator, Any
 from deepagents import create_deep_agent
 from abc import ABC, abstractmethod
 from langchain_groq.chat_models import ChatGroq
+from app.tools.data_parser import wrap_mcp_tool
 import yaml
 
 
@@ -86,8 +87,9 @@ class DeepAgentClient(AgentStatergy):
                 stream_mode="messages",
                 debug=True
             ):
-                if isinstance(chunks, dict):
-                    yield chunks.get("messages", {}).get("content", "")
+                if isinstance(chunks, dict) and "model" in chunks:
+                    respones = chunks["model"]["messages"][-1].content
+                    yield respones
                 else:
                     yield chunks
         except Exception as error:
@@ -126,30 +128,64 @@ class DeepAgentClient(AgentStatergy):
 
 
 class McpAgentClient(AgentStatergy):
+    """
+    McpAgentClient is a wrapper class that manages the execution of a MCP agent.
+    It takes an API key and model name as parameters and provides methods to run the agent.
+    Attributes:
+        api_key (str): The API key for the MCP agent.
+        model_name (str): The name of the model to be used by the MCP agent.
+    Methods:
+        mcp_agent_run(query: str): Executes the MCP agent in a resilient manner and yields parsed chunks of the response.
+        run_agent(query: str): Executes the MCP agent in a resilient manner and yields parsed chunks of the response.
+        run_async_agent(query: str): Executes the MCP agent asynchronously in a resilient manner and returns the response.
+    """
+
     def __init__(self, model_name, api_key):
         self.model_name = model_name
         self.api_key = api_key
+        self.config = {
+            "shopping": {
+                "transport": "stdio",
+                "command": "uv",
+                "args": [
+                    "run",
+                    "--directory",
+                    r"C:\Users\shova\Desktop\project\pc_bulider_sumit\shopping-mcp",
+                    "shopping-mcp",
+                ],
+            }
+        }
 
     async def mcp_agent_run(self, query):
+        """
+        This method runs the MCP agent with the given query.
+        It uses the MCPAdapter to list available tools and creates a deep agent with the specified model and tools.
+        It then streams the response from the agent and yields parsed chunks of the response.
+        Args:
+            query (str): The input query to be processed by the MCP agent.
+        Yields:
+            str: Parsed chunks of the response from the MCP agent.
+        """
         try:
-            ################################
-            'mcp agent'
-            ################################
-            config = {
-                "shopping": {
-                    "transport": "stdio",
-                    "command": "uv",
-                    "args": [
-                        "run",
-                        "--directory",
-                        r"C:\Users\shova\Desktop\project\pc_bulider_sumit\shopping-mcp",
-                        "shopping-mcp",
-                    ],
+            with open(file="prompt.yml", mode='r') as file:
+                prompt = yaml.safe_load(file)
+                ai_prompt = prompt["agent_config"]["system_prompt"]
+
+            async with MCPAdapter(self.config) as mcp_adapter:
+                all_tools = await mcp_adapter.list_tools()
+                allowed_tools = {
+                    "search_products",
                 }
-            }
-            async with MCPAdapter(config) as mcp_adapter:
-                tools = await mcp_adapter.list_tools()
-                logger.warning(f"this is the mcp tools to use{tools}")
+                tools = []
+                for mcp_tool in all_tools:
+                    if mcp_tool.name in allowed_tools:
+                        wrapped_tool = wrap_mcp_tool(mcp_tool)
+                        tools.append(wrapped_tool)
+                logger.warning(
+                    "Available tools:", [
+                        tool.name for tool in tools
+                    ]
+                )
                 self.mcp_agent = create_deep_agent(
                     model=ChatGroq(
                         model=self.model_name,
@@ -158,33 +194,32 @@ class McpAgentClient(AgentStatergy):
                     ),
                     tools=tools,
                     checkpointer=InMemorySaver(),
-                    system_prompt="You are a helpful assistant that can provide information about shopping, image search, and description search."
+                    system_prompt=ai_prompt,
+                    debug=True
                 )
-
-            async for chunk in self.mcp_agent.astream(
-                input={
-                    "messages": [
+                async for chunk in self.mcp_agent.astream(
+                    input={
+                        "messages": [
                         {
                             "role": "user",
                             "content": query
                         }
-                    ]
-                },
-                config={
-                    "configurable": {
+                        ]
+                    },
+                    config={
+                        "configurable": {
                         "thread_id": str(uuid4())
-                    }
-                },
-                stream_mode="messages",
-                debug=True
-            ):
-                if isinstance(chunk, dict):
-                    yield chunk.get("messages", {}).get("content", "")
-                else:
-                    yield chunk
+                        }
+                    },
+                ):
+                    if isinstance(chunk, dict) and "model" in chunk:
+                        message = chunk["model"]["messages"][-1].content
+                        yield str(message)
+                    else:
+                        None
         except Exception as error:
             logger.error(f"Error in running mcp agent: {error}")
-            yield AiErrorHandeler("mcp agent is not working for now please try again later")
+            yield AiErrorHandeler(messages="mcp agent is not working for now please try again later")
 
     async def run_agent(self):
         pass
