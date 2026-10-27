@@ -21,7 +21,7 @@ class ApiSettings(BaseSettings):
     LANGSMITH_API_KEY: str
     LANGSMITH_PROJECT: str
 
-    GROQ_API_KEY: str
+    GOOGLE_API_KEY: str
     SERPAPI_API: str
 
 

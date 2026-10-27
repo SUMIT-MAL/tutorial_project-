@@ -1,8 +1,9 @@
-from managed_deepagents import define_deep_agent, define_memory, MemoryLayer
+from langchain_google_genai import ChatGoogleGenerativeAI
 from app.tools.tools_hub import image_search_thread, shoping_link_search_thread, description_search_thread
 from langgraph.checkpoint.memory import InMemorySaver
 from app.utils.helper import AiErrorHandeler
 from loguru import logger
+import aiohttp
 from langchain.mcp import MCPAdapter
 from uuid import uuid4
 from typing import AsyncIterator, Any
@@ -181,21 +182,15 @@ class McpAgentClient(AgentStatergy):
                     if mcp_tool.name in allowed_tools:
                         wrapped_tool = wrap_mcp_tool(mcp_tool)
                         tools.append(wrapped_tool)
-                logger.warning(
-                    "Available tools:", [
-                        tool.name for tool in tools
-                    ]
-                )
                 self.mcp_agent = create_deep_agent(
-                    model=ChatGroq(
-                        model=self.model_name,
-                        api_key=self.api_key,
-                        temperature=0.0
+                    model=ChatGoogleGenerativeAI(
+                        model=self.model_name,     # use an exact name from the list above
+                        google_api_key=self.api_key,
+                        temperature=0,
                     ),
                     tools=tools,
                     checkpointer=InMemorySaver(),
                     system_prompt=ai_prompt,
-                    debug=True
                 )
                 async for chunk in self.mcp_agent.astream(
                     input={
@@ -208,7 +203,7 @@ class McpAgentClient(AgentStatergy):
                     },
                     config={
                         "configurable": {
-                        "thread_id": str(uuid4())
+                        "thread_id": str(1234567890)
                         }
                     },
                 ):
@@ -217,7 +212,7 @@ class McpAgentClient(AgentStatergy):
                         yield str(message)
                     else:
                         None
-        except Exception as error:
+        except aiohttp.ClientConnectionError as error:
             logger.error(f"Error in running mcp agent: {error}")
             yield AiErrorHandeler(messages="mcp agent is not working for now please try again later")
 
